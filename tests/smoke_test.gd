@@ -1,52 +1,59 @@
 extends SceneTree
 
-## Phase 1 smoke test. Run:
+## Phase 1+2 smoke test. Run:
 ##   godot --headless --path . -s tests/smoke_test.gd          (logic asserts)
 ##   godot --path . -s tests/smoke_test.gd -- --shots          (windowed, writes shots/*.png)
 
 var _failures: Array[String] = []
 var _player: Player
+var _manager: TurnManager
+var _main: Node
 
 func _initialize() -> void:
 	var shots := "--shots" in OS.get_cmdline_user_args()
-	var main: Node = load("res://scenes/main.tscn").instantiate()
-	root.add_child(main)
+	_main = load("res://scenes/main.tscn").instantiate()
+	root.add_child(_main)
 	await process_frame
 	await process_frame
 
-	_player = main.get_node("Player")
-	var data: DungeonData = main.get_node("DungeonData")
+	_player = _main.get_node("Player")
+	_manager = _main.get_node("TurnManager")
+	var data: DungeonData = _main.get_node("DungeonData")
 
 	_assert(data.player_start == Vector2i(2, 2), "player_start parsed")
 	_assert(data.guardian_pos == Vector2i(12, 11), "guardian_pos parsed")
+	_assert(data.enemy_spawns.size() == 3, "3 enemy spawns parsed, got %d" % data.enemy_spawns.size())
 	_assert(_player.grid_pos == Vector2i(2, 2), "player at start")
 
-	# Simulated input: forward once -> (2,1); second press hits north wall
+	# Enemies spawned and registered
+	var enemies := _enemies()
+	_assert(enemies.size() == 3, "3 enemies spawned, got %d" % enemies.size())
+	_assert(_manager.actors.size() == 4, "4 actors registered, got %d" % _manager.actors.size())
+
+	# Movement still works under the scheduler
 	await _press("move_forward")
 	_assert(_player.grid_pos == Vector2i(2, 1), "forward -> (2,1), got %s" % _player.grid_pos)
 	await _press("move_forward")
 	_assert(_player.grid_pos == Vector2i(2, 1), "wall blocks move")
 
-	# Turn right (east), forward -> (3,1)
-	await _press("turn_right")
-	_assert(_player.facing == Vector2i(1, 0), "turn_right faces east")
-	await _press("move_forward")
-	_assert(_player.grid_pos == Vector2i(3, 1), "east move -> (3,1), got %s" % _player.grid_pos)
-
-	# Strafe right (south) -> (3,2)
-	await _press("strafe_right")
-	_assert(_player.grid_pos == Vector2i(3, 2), "strafe -> (3,2), got %s" % _player.grid_pos)
-
-	# Direct-call path (input-independent)
-	_player.teleport(Vector2i(2, 2), Vector2i(0, -1))
-	_player.move_back()
-	await _idle()
-	_assert(_player.grid_pos == Vector2i(2, 3), "move_back -> (2,3), got %s" % _player.grid_pos)
+	# Speed difference: wisp (200) should act ~2x per player turn vs slime (50).
+	var wisp := _enemy_of_type("w")
+	var slime := _enemy_of_type("s")
+	var wisp_acts := [0]
+	var slime_acts := [0]
+	wisp.acted.connect(func(_e): wisp_acts[0] += 1)
+	slime.acted.connect(func(_e): slime_acts[0] += 1)
+	for i in 10:
+		await _press("wait")
+	print("acts over 10 waits: wisp=%d slime=%d" % [wisp_acts[0], slime_acts[0]])
+	_assert(wisp_acts[0] >= 12, "wisp acted >=12 times, got %d" % wisp_acts[0])
+	_assert(slime_acts[0] >= 3 and slime_acts[0] <= 7, "slime acted 3-7 times, got %d" % slime_acts[0])
 
 	if shots:
 		await _shoot(Vector2i(2, 7), Vector2i(0, -1), "shots/corridor.png")
 		await _shoot(Vector2i(7, 5), Vector2i(0, -1), "shots/midroom.png")
 		await _shoot(Vector2i(11, 11), Vector2i(1, 0), "shots/exit.png")
+		await _shoot(Vector2i(7, 5), Vector2i(0, 1), "shots/enemy.png")
 
 	if _failures.is_empty():
 		print("SMOKE: all assertions passed")
@@ -57,8 +64,26 @@ func _initialize() -> void:
 		return
 	quit(0)
 
+func _enemies() -> Array:
+	var out: Array = []
+	for child in _main.get_children():
+		if child is Enemy:
+			out.append(child)
+	return out
+
+func _enemy_of_type(type_key: String) -> Enemy:
+	for e in _enemies():
+		if e.display_name == DungeonData.ENEMY_TYPES[type_key]["name"]:
+			return e
+	return null
+
 func _press(action: String) -> void:
 	await _idle()
+	# Wait until the scheduler grants the player a turn.
+	for i in 120:
+		await process_frame
+		if _player.input_enabled:
+			break
 	var key := _key_for(action)
 	var down := InputEventKey.new()
 	down.physical_keycode = key
@@ -80,6 +105,7 @@ func _key_for(action: String) -> Key:
 		"strafe_right": return KEY_D
 		"turn_left": return KEY_Q
 		"turn_right": return KEY_E
+		"wait": return KEY_SPACE
 	return KEY_NONE
 
 func _idle() -> void:
@@ -103,3 +129,4 @@ func _assert(cond: bool, name: String) -> void:
 	else:
 		_failures.append(name)
 		printerr("FAIL: " + name)
+

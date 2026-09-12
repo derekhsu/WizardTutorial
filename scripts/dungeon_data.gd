@@ -3,15 +3,24 @@ extends Node
 
 ## Pure-data tile model. Rendering and actors consume this; nothing here
 ## knows about nodes or meshes. ASCII map doubles as the level-editing format:
-##   '#' wall   '.' floor   'D' door (open)   'E' exit   'P' player start   'G' guardian
+##   '#' wall   '.' floor   'D' door (open)   'E' exit   'P' player start
+##   's' slime   'w' wisp   'G' guardian
 
 enum TileType { WALL, FLOOR, DOOR, EXIT }
+
+## Enemy spawn table: ascii char -> stats.
+const ENEMY_TYPES := {
+	"s": {"name": "Slime", "speed": 50, "hp": 40, "attack": 4, "color": Color(0.3, 0.8, 0.3)},
+	"w": {"name": "Wisp", "speed": 200, "hp": 15, "attack": 3, "color": Color(0.4, 0.7, 1.0)},
+	"G": {"name": "Guardian", "speed": 150, "hp": 80, "attack": 8, "color": Color(0.9, 0.2, 0.2)},
+}
 
 @export_multiline var ascii_map := ""
 
 var tiles: Dictionary = {}  # Vector2i -> TileType
 var player_start := Vector2i(1, 1)
 var guardian_pos := Vector2i.ZERO
+var enemy_spawns: Array[Dictionary] = []  # {pos, type_key}
 var map_size := Vector2i.ZERO
 
 func _ready() -> void:
@@ -23,7 +32,8 @@ func _parse() -> void:
 		var line := lines[y]
 		map_size.x = maxi(map_size.x, line.length())
 		for x in line.length():
-			match line[x]:
+			var ch := line[x]
+			match ch:
 				"#":
 					tiles[Vector2i(x, y)] = TileType.WALL
 				".":
@@ -35,9 +45,12 @@ func _parse() -> void:
 				"P":
 					tiles[Vector2i(x, y)] = TileType.FLOOR
 					player_start = Vector2i(x, y)
-				"G":
-					tiles[Vector2i(x, y)] = TileType.FLOOR
-					guardian_pos = Vector2i(x, y)
+				_:
+					if ENEMY_TYPES.has(ch):
+						tiles[Vector2i(x, y)] = TileType.FLOOR
+						enemy_spawns.append({"pos": Vector2i(x, y), "type": ch})
+						if ch == "G":
+							guardian_pos = Vector2i(x, y)
 	map_size.y = lines.size()
 
 func tile_at(pos: Vector2i) -> int:
