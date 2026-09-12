@@ -49,6 +49,33 @@ func _initialize() -> void:
 	_assert(wisp_acts[0] >= 12, "wisp acted >=12 times, got %d" % wisp_acts[0])
 	_assert(slime_acts[0] >= 3 and slime_acts[0] <= 7, "slime acted 3-7 times, got %d" % slime_acts[0])
 
+	# Spell: teleport next to the wisp's current position and cast magic missile.
+	var wisp_pos := wisp.grid_pos
+	_player.teleport(wisp_pos + Vector2i(0, -1), Vector2i(0, 1))
+	var mana_before: int = _player.mana
+	await _press("spell_1")
+	_assert(_player.mana == mana_before - 5, "spell_1 costs 5 mana, got %d" % _player.mana)
+	_assert(not is_instance_valid(wisp) or wisp.hp < 15, "wisp took damage or died")
+
+	# Win condition: exit sealed while guardian alive.
+	_player.teleport(Vector2i(12, 12), Vector2i(0, -1))
+	var won := [false]
+	_player.won.connect(func(): won[0] = true)
+	await _press("move_forward")  # step onto exit (12,12)? exit is (12,12)? map row 12: "#......#...#E.#" -> E at x=12
+	_assert(not won[0], "exit sealed while guardian alive")
+
+	# Death: set hp low and let the guardian hit.
+	_player.hp = 1
+	var died := [false]
+	_player.died.connect(func(): died[0] = true)
+	# Teleport next to guardian (12,11) and wait for it to attack.
+	_player.teleport(Vector2i(11, 11), Vector2i(1, 0))
+	for i in 20:
+		await _press("wait")
+		if died[0]:
+			break
+	_assert(died[0], "player died to guardian")
+
 	if shots:
 		await _shoot(Vector2i(2, 7), Vector2i(0, -1), "shots/corridor.png")
 		await _shoot(Vector2i(7, 5), Vector2i(0, -1), "shots/midroom.png")
@@ -106,6 +133,9 @@ func _key_for(action: String) -> Key:
 		"turn_left": return KEY_Q
 		"turn_right": return KEY_E
 		"wait": return KEY_SPACE
+		"spell_1": return KEY_1
+		"spell_2": return KEY_2
+		"spell_3": return KEY_3
 	return KEY_NONE
 
 func _idle() -> void:

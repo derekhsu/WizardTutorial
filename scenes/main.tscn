@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://b1main00scene0"]
+[gd_scene load_steps=8 format=3 uid="uid://b1main00scene0"]
 
 [ext_resource type="Script" path="res://scripts/dungeon_data.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/dungeon_builder.gd" id="2"]
 [ext_resource type="PackedScene" uid="uid://b1player0scene" path="res://scenes/player.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/turn_manager.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/enemy.gd" id="5"]
+[ext_resource type="PackedScene" uid="uid://b1hud000scene0" path="res://scenes/hud.tscn" id="6"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky"]
 sky_top_color = Color(0.01, 0.01, 0.02, 1)
@@ -35,3 +36,5 @@ script = ExtResource("2")
 
 [node name="TurnManager" type="Node" parent="."]
 script = ExtResource("4")
+
+[node name="HUD" parent="." instance=ExtResource("6")]

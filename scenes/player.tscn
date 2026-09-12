@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://b1player0scene"]
+[gd_scene load_steps=3 format=3 uid="uid://b1player0scene"]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/spell_system.gd" id="2"]
 
 [node name="Player" type="Node3D"]
 script = ExtResource("1")
@@ -13,3 +14,6 @@ fov = 75.0
 light_energy = 1.6
 omni_range = 14.0
 omni_attenuation = 0.8
+
+[node name="SpellSystem" type="Node" parent="."]
+script = ExtResource("2")

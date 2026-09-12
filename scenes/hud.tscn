@@ -1,0 +1,69 @@
+[gd_scene load_steps=2 format=3 uid="uid://b1hud000scene0"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="Margin" type="MarginContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="VBox" type="VBoxContainer" parent="Margin"]
+
+[node name="TopRow" type="HBoxContainer" parent="Margin/VBox"]
+
+[node name="HPBar" type="ProgressBar" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(220, 22)
+max_value = 50.0
+value = 50.0
+show_percentage = false
+
+[node name="ManaBar" type="ProgressBar" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(220, 22)
+max_value = 30.0
+value = 30.0
+show_percentage = false
+
+[node name="Turn" type="Label" parent="Margin/VBox/TopRow"]
+custom_minimum_size = Vector2(140, 0)
+text = "Enemies acting..."
+horizontal_alignment = 1
+
+[node name="Spells" type="RichTextLabel" parent="Margin/VBox/TopRow"]
+size_flags_horizontal = 3
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+
+[node name="Log" type="Label" parent="Margin/VBox"]
+size_flags_vertical = 3
+vertical_alignment = 2
+text = ""
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.3, 0, 0, 0.85)
+
+[node name="Center" type="VBoxContainer" parent="Overlay"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+alignment = 1
+
+[node name="Text" type="Label" parent="Overlay/Center"]
+theme_override_font_sizes/font_size = 64
+text = "YOU DIED"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Overlay/Center"]
+theme_override_font_sizes/font_size = 20
+text = "Press R to restart"
+horizontal_alignment = 1

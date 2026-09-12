@@ -29,8 +29,24 @@ func _ready() -> void:
 func _start() -> void:
 	_collect_actors()
 	player.action_taken.connect(_on_player_action)
+	player.died.connect(_on_player_died)
+	player.won.connect(_on_player_won)
 	running = true
 	_run()
+
+func guardian_alive() -> bool:
+	for a in actors:
+		if a is Enemy and a.display_name == "Guardian":
+			return true
+	return false
+
+func _on_player_died() -> void:
+	running = false
+	log_message("You died.")
+
+func _on_player_won() -> void:
+	running = false
+	log_message("You escaped the dungeon!")
 
 func _spawn_enemies() -> void:
 	for spawn in dungeon_data.enemy_spawns:

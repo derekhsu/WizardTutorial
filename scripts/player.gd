@@ -8,7 +8,9 @@ extends Node3D
 
 signal action_taken(cost: int)
 signal hp_changed(hp: int, max_hp: int)
+signal mana_changed(mana: int, max_mana: int)
 signal died
+signal won
 
 const MOVE_TIME := 0.18
 const TURN_TIME := 0.15
@@ -16,6 +18,7 @@ const ATTACK_TIME := 0.22
 const ACTION_COST := 100
 
 @onready var dungeon_data: DungeonData = get_parent().get_node("DungeonData")
+@onready var spells: SpellSystem = $SpellSystem
 
 var grid_pos := Vector2i.ZERO
 var facing := Vector2i(0, -1)  # -Y = north
@@ -24,7 +27,10 @@ var speed := 100
 var energy := 0
 var hp := 50
 var max_hp := 50
+var mana := 30
+var max_mana := 30
 var attack_power := 10
+var alive := true
 
 var _busy := false
 var _torch: OmniLight3D
@@ -41,7 +47,7 @@ func _ready() -> void:
 	_turn_manager = get_parent().get_node_or_null("TurnManager")
 
 func _process(_delta: float) -> void:
-	if not input_enabled or _busy:
+	if not input_enabled or _busy or not alive:
 		return
 	if Input.is_action_pressed("move_forward"):
 		move_forward()
@@ -57,6 +63,12 @@ func _process(_delta: float) -> void:
 		turn_right()
 	elif Input.is_action_pressed("wait"):
 		wait()
+	elif Input.is_action_pressed("spell_1"):
+		cast_spell(0)
+	elif Input.is_action_pressed("spell_2"):
+		cast_spell(1)
+	elif Input.is_action_pressed("spell_3"):
+		cast_spell(2)
 
 func is_busy() -> bool:
 	return _busy
@@ -84,6 +96,13 @@ func wait() -> void:
 		return
 	_busy = true
 	_finish_action(ACTION_COST)
+
+func cast_spell(index: int) -> void:
+	if _busy or not spells.can_cast(index):
+		if not spells.can_cast(index):
+			_turn_manager.log_message("Not enough mana.")
+		return
+	spells.cast(index)
 
 func _try_move_or_attack(dir: Vector2i) -> void:
 	if _busy:
@@ -132,6 +151,15 @@ func _turn(new_facing: Vector2i) -> void:
 	tween.finished.connect(_on_action_done, CONNECT_ONE_SHOT)
 
 func _on_action_done() -> void:
+	# Mana regen: +1 per player action.
+	mana = mini(mana + 1, max_mana)
+	mana_changed.emit(mana, max_mana)
+	# Win check: stepping on the exit after the guardian is dead.
+	if dungeon_data.tile_at(grid_pos) == DungeonData.TileType.EXIT:
+		if _turn_manager.guardian_alive():
+			_turn_manager.log_message("The exit is sealed by the Guardian.")
+		else:
+			won.emit()
 	_finish_action(ACTION_COST)
 
 func _finish_action(cost: int) -> void:
@@ -139,10 +167,13 @@ func _finish_action(cost: int) -> void:
 	action_taken.emit(cost)
 
 func take_damage(amount: int) -> void:
+	if not alive:
+		return
 	hp -= amount
 	hp_changed.emit(hp, max_hp)
 	_flash_damage()
 	if hp <= 0:
+		alive = false
 		died.emit()
 
 func _flash_damage() -> void:
