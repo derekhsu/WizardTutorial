@@ -1,0 +1,31 @@
+[gd_scene load_steps=6 format=3 uid="uid://b1main00scene0"]
+
+[ext_resource type="Script" path="res://scripts/dungeon_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/dungeon_builder.gd" id="2"]
+[ext_resource type="PackedScene" uid="uid://b1player0scene" path="res://scenes/player.tscn" id="3"]
+
+[sub_resource type="ProceduralSkyMaterial" id="sky"]
+sky_top_color = Color(0.01, 0.01, 0.02, 1)
+sky_horizon_color = Color(0.01, 0.01, 0.02, 1)
+ground_bottom_color = Color(0.01, 0.01, 0.02, 1)
+ground_horizon_color = Color(0.01, 0.01, 0.02, 1)
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_color = Color(0.45, 0.48, 0.6, 1)
+ambient_light_energy = 0.6
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="DungeonData" type="Node" parent="."]
+script = ExtResource("1")
+ascii_map = "###############\n#.....#.......#\n#.P...#...#...#\n#.....#...#...#\n##D####...#...#\n#.....#####D###\n#.....#.......#\n##D####.......#\n#.....#...#...#\n#.....D...#...#\n#.....#####D###\n#...........G.#\n#......#...#E.#\n###############"
+
+[node name="DungeonBuilder" type="Node3D" parent="."]
+script = ExtResource("2")
+
+[node name="Player" parent="." instance=ExtResource("3")]
