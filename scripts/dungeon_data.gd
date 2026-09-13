@@ -11,8 +11,8 @@ enum TileType { WALL, FLOOR, DOOR, EXIT }
 ## Enemy spawn table: ascii char -> stats.
 const ENEMY_TYPES := {
 	"s": {"name": "Slime", "speed": 50, "hp": 40, "attack": 4, "color": Color(0.3, 0.8, 0.3)},
-	"w": {"name": "Wisp", "speed": 200, "hp": 15, "attack": 3, "color": Color(0.4, 0.7, 1.0)},
-	"G": {"name": "Guardian", "speed": 150, "hp": 80, "attack": 8, "color": Color(0.9, 0.2, 0.2)},
+	"w": {"name": "Wisp", "speed": 200, "hp": 15, "attack": 2, "color": Color(0.4, 0.7, 1.0)},
+	"G": {"name": "Guardian", "speed": 80, "hp": 80, "attack": 12, "color": Color(0.9, 0.2, 0.2)},
 }
 
 @export_multiline var ascii_map := ""

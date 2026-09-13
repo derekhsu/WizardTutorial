@@ -25,8 +25,8 @@ var facing := Vector2i(0, -1)  # -Y = north
 var input_enabled := false  # TurnManager grants input on the player's turn
 var speed := 100
 var energy := 0
-var hp := 50
-var max_hp := 50
+var hp := 60
+var max_hp := 60
 var mana := 30
 var max_mana := 30
 var attack_power := 10
