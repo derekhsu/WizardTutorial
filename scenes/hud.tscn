@@ -91,11 +91,24 @@ anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -380.0
+offset_left = -500.0
 offset_top = -70.0
 offset_right = -12.0
 offset_bottom = -12.0
 theme_override_constants/separation = 8
+
+[node name="MeleeHint" type="PanelContainer" parent="SpellBar"]
+custom_minimum_size = Vector2(118, 58)
+
+[node name="VBox" type="VBoxContainer" parent="SpellBar/MeleeHint"]
+
+[node name="Title" type="Label" parent="SpellBar/MeleeHint/VBox"]
+theme_override_font_sizes/font_size = 13
+text = "Melee"
+
+[node name="Cost" type="Label" parent="SpellBar/MeleeHint/VBox"]
+theme_override_font_sizes/font_size = 11
+text = "walk into enemy"
 
 [node name="Overlay" type="ColorRect" parent="."]
 anchors_preset = 15
