@@ -176,6 +176,19 @@ func _attack(target: Node) -> void:
 		_finish_action(ACTION_COST)
 	, CONNECT_ONE_SHOT)
 
+func take_damage(amount: int) -> void:
+	if not alive:
+		return
+	hp -= amount
+	hp_changed.emit(hp, max_hp)
+	_flash_damage()
+	var hud := get_parent().get_node_or_null("HUD")
+	if hud:
+		hud.flash_damage()
+	if hp <= 0:
+		alive = false
+		died.emit()
+
 func _turn(new_facing: Vector2i) -> void:
 	if _busy:
 		return
@@ -201,15 +214,6 @@ func _finish_action(cost: int) -> void:
 	_busy = false
 	action_taken.emit(cost)
 
-func take_damage(amount: int) -> void:
-	if not alive:
-		return
-	hp -= amount
-	hp_changed.emit(hp, max_hp)
-	_flash_damage()
-	if hp <= 0:
-		alive = false
-		died.emit()
 
 func _flash_damage() -> void:
 	var tween := create_tween()

@@ -15,6 +15,7 @@ var display_name := "Enemy"
 var speed := 100
 var energy := 0
 var hp := 30
+var max_hp := 30
 var attack_power := 5
 var grid_pos := Vector2i.ZERO
 var color := Color.RED
@@ -27,6 +28,7 @@ func configure(p_display_name: String, p_speed: int, p_hp: int, p_attack: int, p
 	display_name = p_display_name
 	speed = p_speed
 	hp = p_hp
+	max_hp = p_hp
 	attack_power = p_attack
 	color = p_color
 
@@ -41,6 +43,7 @@ func _build_visuals() -> void:
 	_mesh.mesh = capsule
 	_mesh.position.y = 0.8
 	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
 	mat.emission_enabled = true
 	mat.emission = color
 	mat.emission_energy_multiplier = 0.4
@@ -99,8 +102,24 @@ func _attack(player: Player, manager: TurnManager) -> void:
 func take_damage(amount: int, manager: TurnManager) -> void:
 	hp -= amount
 	manager.log_message("%s takes %d damage." % [display_name, amount])
+	_spawn_damage_popup(amount)
 	if hp <= 0:
 		die(manager)
+
+func _spawn_damage_popup(amount: int) -> void:
+	var label := Label3D.new()
+	label.text = "-%d" % amount
+	label.font_size = 96
+	label.pixel_size = 0.01
+	label.modulate = Color(1.0, 0.85, 0.3)
+	label.outline_size = 12
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.position = position + Vector3(0, 2.0, 0)
+	get_parent().add_child(label)
+	var tween := label.create_tween().set_parallel(true)
+	tween.tween_property(label, "position:y", label.position.y + 0.8, 0.9)
+	tween.tween_property(label, "modulate:a", 0.0, 0.9)
+	tween.chain().tween_callback(label.queue_free)
 
 func die(manager: TurnManager) -> void:
 	manager.log_message("%s dies." % display_name)

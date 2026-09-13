@@ -14,6 +14,7 @@
 3. **法術戰鬥成立**：法術是主要輸出手段，施放成本與 energy 系統互動（重法術施放時間長、有被打斷風險）。
 4. **勝敗條件明確**：擊敗守關者並抵達出口＝勝利；HP 歸零＝失敗並可重新開始。
 5. **技術驗證**：證明 Godot 4 的 `Tween`＋`AStarGrid2D`＋自訂排程器足以支撐此類型，無需外部工具或插件。
+6. **資訊可讀**：玩家不看說明文件就能從 HUD 理解回合節奏、法術成本、敵人狀態——UI 是 PoC 驗證「系統是否可感知」的必要條件。
 
 ## Non-Goals
 
@@ -21,9 +22,10 @@
 - **程序化生成**：地牢手工設計一層。tile 資料格式保持生成器友善，但不寫生成器。
 - **物品／裝備／背包系統**：最多允許拾取式補給（如 mana 水晶），不做裝備欄。
 - **角色養成**：無等級、經驗值、技能樹。數值固定，便於調平衡。
-- **正式美術與音效**：全部使用引擎內建 primitive mesh＋單色材質。UI 用預設主題。
+- **正式美術與音效**：3D 場景全部使用引擎內建 primitive mesh＋單色材質。UI 用預設主題＋排版設計，不做法術圖示美術、自訂字體、皮膚。
 - **存檔／讀檔**：單層地牢，死亡即重來。
 - **多層地牢**：出口即終點，不接下一層。
+- **主選單／設定**：PoC 直接進遊戲，勝敗畫面即全部流程 UI。
 
 ## User Stories
 
@@ -37,6 +39,13 @@
 - As a player, I want fast enemies to act more often than slow ones, so that enemy speed is a real threat axis.
 - As a player, I want to see my HP and mana at all times, so that I can make informed decisions.
 - As a player, I want to know when it's my turn vs. when enemies are acting, so that the turn flow is legible.
+- As a player, I want damage numbers to appear on enemies I hit, so that I get immediate feedback on spell effectiveness.
+- As a player, I want a clear visual warning when I take damage, so that I notice being attacked even while looking at the log.
+
+**玩家（資訊）**
+- As a player, I want the spell bar to show each spell's mana cost and time cost, so that I can weigh speed vs. power without memorizing.
+- As a player, I want to see the name and HP of the enemy I'm facing, so that I can decide whether to engage or retreat.
+- As a player, I want to see who acts next (turn order preview), so that the energy system is legible rather than arbitrary.
 
 **玩家（目標）**
 - As a player, I want the exit to be visibly guarded, so that I understand combat is required to win.
@@ -57,9 +66,10 @@
 - `Tween` 插值移動與轉向（約 150–250ms），動畫期間鎖輸入。
 - 牆與關閉的門阻擋移動；不可離開地牢邊界。
 - 驗收：
-  - [ ] 按 W/A/S/D 與 Q/E（轉向）可在地牢內移動，動畫平滑無瞬移。
+  - [ ] 按 W/A/S/D、方向鍵（↑↓ 移動、←→ 轉向）與 Q/E 可在地牢內移動，動畫平滑無瞬移。
   - [ ] 面對牆壁按前進，位置不變且無錯誤。
   - [ ] 移動動畫中連按按鍵不會插隊或位移錯格。
+  - [ ] 敵人回合中按下的鍵被緩衝，輪到玩家時執行（輸入不被吞）。
 
 **R3 Energy 回合排程器**
 - 每個 actor 有 `speed` 與 `energy`；每 tick 所有 actor `energy += speed`，達門檻（100）者依序行動，行動後扣除行動成本。
@@ -100,10 +110,27 @@
   - [ ] 殺死守關者後踩出口格顯示勝利畫面。
   - [ ] 死亡後按重新開始能重置整層地牢狀態。
 
-**R7 最小 HUD**
-- HP 條、mana 條、訊息 log（最近 5 行）、法術選擇（1/2/3 鍵）。
-- 回合狀態提示（「你的回合」／敵人行動中）。
-- 驗收：上述元素全程可見且數值即時更新。
+**R7 HUD 與戰鬥回饋（UI 設計）**
+
+PoC 的 UI 目標是「資訊設計正確」，不是視覺風格。用預設主題＋排版，但每個元素的位置與內容都經過設計：
+
+- **佈局**（1280×720 基準）：
+  - 左下：HP 條（紅）＋ mana 條（藍），顯示數值（如 38/50）。
+  - 底部中央：訊息 log，最近 5 行，戰鬥訊息與系統訊息分色。
+  - 右下：法術欄，3 格，每格顯示快捷鍵、名稱、mana 成本、energy 成本；mana 不足時整格變灰。
+  - 頂部中央：回合指示（「你的回合」高亮／「敵人行動中」暗淡）。
+  - 頂部右側：行動順序預覽——接下來 3 個行動者的名稱（依 energy 排序），讓速度系統可見。
+- **戰鬥回饋**：
+  - 敵人受擊時頭頂浮出傷害數字（3D 空間 `Label3D`，1 秒淡出上浮）。
+  - 玩家受擊時螢幕邊緣紅閃（全螢幕 `ColorRect` 淡入淡出）。
+  - 面向的敵人（射線第一個）在準星下方顯示名字＋HP 條。
+- **勝敗畫面**：全螢幕 overlay＋結果文字＋「按 R 重新開始」。
+- 驗收：
+  - [ ] 所有 HUD 元素在 1280×720 與 1920×1080 下不遮擋第一人稱視野中央。
+  - [ ] 法術欄在 mana 不足時即時變灰，恢復後變回。
+  - [ ] 傷害數字出現在正確的敵人位置並淡出。
+  - [ ] 玩家受擊紅閃在每次受擊時觸發。
+  - [ ] 行動順序預覽與實際行動順序一致。
 
 ### P1 — Nice-to-Have（核心驗證完後再加）
 
@@ -111,8 +138,9 @@
 - **R9 狀態效果**：緩速術（降低敵人 speed N tick）——最能展示 energy 系統深度的機制。
 - **R10 施法打斷**：高成本法術在累積期間受擊則施放失敗（能量照扣）。
 - **R11 門與機關**：可開啟的門、拉桿開遠處門——驗證格子互動系統。
-- **R12 Automap**：已探索區域的小地圖。
+- **R12 Automap**：已探索區域的小地圖（右上角，跟隨玩家旋轉或固定北向）。
 - **R13 音效**：移動、施法、受擊、勝敗（免費音效庫即可）。
+- **R14 法術圖示與 UI 美術**：法術欄換成真圖示、自訂字體、邊框風格——PoC 驗證完資訊設計後再做。
 
 ### P2 — Future Considerations（現在不寫，但架構要留路）
 
@@ -121,6 +149,7 @@
 - **多層地牢**：出口改為載入下一層資料；需要樓層定義格式。
 - **物品／裝備／角色養成**：需要 entity 組件化與資料表。
 - **即時制模式**：排程器改為連續時間；現有 energy 模型可直接映射（Grimrock 本質是連續 energy）。
+- **完整流程 UI**：主選單、暫停、設定、統計畫面。
 
 ## Success Metrics
 
@@ -133,9 +162,10 @@ PoC 的「使用者」是開發者本人與試玩者，指標以驗證為導向�
 - 移動動畫期間 0 次輸入插隊 bug。
 
 **Lagging（試玩後評估）**
-- 試玩者不看說明能理解「輪到我才能動」的回合節奏。
+- 試玩者不看說明能理解「輪到我才能動」的回合節奏（回合指示＋行動順序預覽的驗證點）。
 - 試玩者能說出「那隻快的怪比較煩」——速度差異被感知。
 - 至少一名試玩者選擇過「用快法術還是賭重法術」的決策——法術成本產生張力。
+- 試玩者能從法術欄讀出 mana 與時間成本，不需要額外說明。
 - 開發者判斷：核心循環值得擴成完整遊戲（go/no-go）。
 
 ## Open Questions
@@ -147,14 +177,17 @@ PoC 的「使用者」是開發者本人與試玩者，指標以驗證為導向�
 | 敵人是否有遠程攻擊？ | 設計 | 否——PoC 全近戰即可驗證排程器 |
 | 格子尺寸與移動時長的手感參數 | 工程 | 否——做成可調常數，試玩後調 |
 | 守關者是站樁還是巡邏？ | 設計 | 否——建議站樁，最簡單且意圖清楚 |
+| 行動順序預覽顯示幾個？3 個夠嗎？ | 設計 | 否——先 3 個，試玩後調 |
+| 敵人 HP 條是常駐還是面向才顯示？ | 設計 | 否——先面向才顯示（準星下方），資訊量最小 |
 
 ## Timeline Considerations
 
 無硬性期限。建議按以下階段推進，每階段結束都可運行：
 
-- **Phase 1 — 骨架與移動**：R1＋R2。成果：能在色塊地牢裡走。
-- **Phase 2 — 回合與敵人**：R3＋R4。成果：敵人會追會打，速度差異可見。
-- **Phase 3 — 法術與勝敗**：R5＋R6＋R7。成果：完整可贏可輸的 run。
+- **Phase 1 — 骨架與移動**：R1＋R2。成果：能在色塊地牢裡走。✅
+- **Phase 2 — 回合與敵人**：R3＋R4。成果：敵人會追會打，速度差異可見。✅
+- **Phase 3 — 法術與勝敗**：R5＋R6＋R7 基礎版。成果：完整可贏可輸的 run。✅
+- **Phase 3b — UI 補強**：R7 完整版——法術欄（成本顯示＋變灰）、傷害浮字、受擊紅閃、面向敵人資訊、行動順序預覽。
 - **Phase 4 — 驗證與調參**：試玩、調 speed/成本/血量，決定 go/no-go 與 P1 取捨。
 
-Phase 3 完成即達 PoC 定義的「done」；P1 項目依試玩回饋決定是否納入。
+Phase 3b 完成即達 PoC 定義的「done」；P1 項目依試玩回饋決定是否納入。
