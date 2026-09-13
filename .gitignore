@@ -13,3 +13,4 @@ mono_crash.*.json
 # System/tooling
 .DS_Store
 *.tmp
+build/
