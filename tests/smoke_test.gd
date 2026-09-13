@@ -54,6 +54,11 @@ func _initialize() -> void:
 	_player.teleport(wisp_pos + Vector2i(0, -1), Vector2i(0, 1))
 	var mana_before: int = _player.mana
 	await _press("spell_1")
+	# Wait for the cast to finish (projectile tween + action_taken).
+	for i in 60:
+		await process_frame
+		if _player.mana < mana_before:
+			break
 	_assert(_player.mana == mana_before - 5, "spell_1 costs 5 mana, got %d" % _player.mana)
 	_assert(not is_instance_valid(wisp) or wisp.hp < 15, "wisp took damage or died")
 

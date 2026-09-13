@@ -33,6 +33,8 @@ var attack_power := 10
 var alive := true
 
 var _busy := false
+var _queued_action := ""
+var _last_polled := ""
 var _torch: OmniLight3D
 var _turn_manager: TurnManager
 
@@ -43,32 +45,65 @@ func _ready() -> void:
 	_sync_transform()
 	_torch = $Camera3D/Torch
 	_flicker()
-	# TurnManager is created after the player; resolve lazily.
 	_turn_manager = get_parent().get_node_or_null("TurnManager")
 
 func _process(_delta: float) -> void:
-	if not input_enabled or _busy or not alive:
+	# Consume a buffered action the moment the player's turn starts.
+	if input_enabled and not _busy and alive and not _queued_action.is_empty():
+		var queued := _queued_action
+		_queued_action = ""
+		_dispatch(queued)
 		return
+	var action := _poll_input()
+	if action.is_empty():
+		_last_polled = ""
+		return
+	if not input_enabled or _busy or not alive:
+		# Buffer only on a fresh press (action changed since last frame).
+		# "wait" is meaningless to queue — it's already a no-op.
+		if action != _last_polled and action != "wait":
+			_queued_action = action
+		_last_polled = action
+		return
+	_last_polled = action
+	_queued_action = ""
+	_dispatch(action)
+
+func _poll_input() -> String:
 	if Input.is_action_pressed("move_forward"):
-		move_forward()
-	elif Input.is_action_pressed("move_back"):
-		move_back()
-	elif Input.is_action_pressed("strafe_left"):
-		strafe_left()
-	elif Input.is_action_pressed("strafe_right"):
-		strafe_right()
-	elif Input.is_action_pressed("turn_left"):
-		turn_left()
-	elif Input.is_action_pressed("turn_right"):
-		turn_right()
-	elif Input.is_action_pressed("wait"):
-		wait()
-	elif Input.is_action_pressed("spell_1"):
-		cast_spell(0)
-	elif Input.is_action_pressed("spell_2"):
-		cast_spell(1)
-	elif Input.is_action_pressed("spell_3"):
-		cast_spell(2)
+		return "move_forward"
+	if Input.is_action_pressed("move_back"):
+		return "move_back"
+	if Input.is_action_pressed("strafe_left"):
+		return "strafe_left"
+	if Input.is_action_pressed("strafe_right"):
+		return "strafe_right"
+	if Input.is_action_pressed("turn_left"):
+		return "turn_left"
+	if Input.is_action_pressed("turn_right"):
+		return "turn_right"
+	if Input.is_action_pressed("wait"):
+		return "wait"
+	if Input.is_action_pressed("spell_1"):
+		return "spell_1"
+	if Input.is_action_pressed("spell_2"):
+		return "spell_2"
+	if Input.is_action_pressed("spell_3"):
+		return "spell_3"
+	return ""
+
+func _dispatch(action: String) -> void:
+	match action:
+		"move_forward": move_forward()
+		"move_back": move_back()
+		"strafe_left": strafe_left()
+		"strafe_right": strafe_right()
+		"turn_left": turn_left()
+		"turn_right": turn_right()
+		"wait": wait()
+		"spell_1": cast_spell(0)
+		"spell_2": cast_spell(1)
+		"spell_3": cast_spell(2)
 
 func is_busy() -> bool:
 	return _busy
