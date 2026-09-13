@@ -91,6 +91,9 @@ func _run() -> void:
 		for actor in ready:
 			if not running:
 				return
+			# Actor may have died mid-round (e.g. killed by the player).
+			if not is_instance_valid(actor) or not actors.has(actor):
+				continue
 			if actor == player:
 				await _player_turn()
 			else:

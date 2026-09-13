@@ -69,17 +69,23 @@ func _initialize() -> void:
 	await _press("move_forward")  # step onto exit (12,12)? exit is (12,12)? map row 12: "#......#...#E.#" -> E at x=12
 	_assert(not won[0], "exit sealed while guardian alive")
 
-	# Death: set hp low and let the guardian hit.
-	_player.hp = 1
+	# Regression: killing the guardian mid-round must not freeze the scheduler.
+	var guardian := _enemy_of_type("G")
+	# Teleport adjacent to the guardian's CURRENT position (it wanders).
+	_player.teleport(guardian.grid_pos + Vector2i(-1, 0), Vector2i(1, 0))
+	guardian.hp = 1
+	await _press("move_forward")  # bump-attack kills it
+	_assert(not _manager.guardian_alive(), "guardian dead")
+	# Player must get another turn and be able to move.
+	var pos_before := _player.grid_pos
+	await _press("move_back")
+	_assert(_player.grid_pos != pos_before, "player moved after guardian kill, got %s" % _player.grid_pos)
+
+	# Death path: direct damage kills the player.
 	var died := [false]
 	_player.died.connect(func(): died[0] = true)
-	# Teleport next to guardian (12,11) and wait for it to attack.
-	_player.teleport(Vector2i(11, 11), Vector2i(1, 0))
-	for i in 20:
-		await _press("wait")
-		if died[0]:
-			break
-	_assert(died[0], "player died to guardian")
+	_player.take_damage(999)
+	_assert(died[0], "player died")
 
 	if shots:
 		await _shoot(Vector2i(2, 7), Vector2i(0, -1), "shots/corridor.png")
